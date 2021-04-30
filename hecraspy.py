@@ -32,8 +32,8 @@ class HEC_RAS_unsteady(object):
         plan_index_str = '00{}'.format(plan_index)[-2:]
         #
         # plan:
-        h5_fname = '{}.p{}.hdf'.format(project_name, plan_index_str)
-        h5_tmp_fname='{}.p{}.tmp.hdf'.format(project_name, plan_index_str)
+        plan_h5_fname = '{}.p{}.hdf'.format(project_name, plan_index_str)
+        plan_h5_tmp_fname='{}.p{}.tmp.hdf'.format(project_name, plan_index_str)
         b_fname = '{}.b{}'.format(project_name, plan_index_str)
         #
         # geometry:
@@ -43,20 +43,54 @@ class HEC_RAS_unsteady(object):
         #
         self.__dict__.update({ky:vl for ky,vl in locals().items() if not ky in ('self', '__class__')})
         #
+    def fix_text_files(self):
+        # for now, assume text files are small, so we can just read() them
+        #  if we want.
+        #
+        # TODO: write backups of these text files...
+        #
+        with open(self.b_fname, 'r') as fin:
+            b_text = fin.read().replace('{}{}'.format(chr(13), chr(10)), chr(10))
+            #
+            for rw in b_text.split('\n'):
+                #
+                # TODO: not quite right here...
+                # or ":"+chr(92)
+                if rw[1:3]==":\\":
+                    #print('*** Found filename.')
+                    #fname_rw = rw
+                    #fname = fname_rw.split('\\')
+                    b_text = b_text.replace(rw, rw.split('\\')[-1])
+                    break
+                #
+            #
+        #
+        #with open(self.b_fname, 'w') as fout:
+        #    fout.write(b_text)
+        #
+        with open(self.x_fname, 'r') as fin:
+            x+text = fin.read().replace('{}{}'.format(chr(13), chr(10)), chr(10))
+        #
+        #with open(self.x_fname, 'w') as fout:
+        #    fout.write(x_text)
+        print('*** {}'.format(b_text))
+        
 #
 if __name__ == '__main__':
     # TODO: also, assume project_name, geom_index, plan_index as default.
     # then, override with **kwargs style.
     argv = sys.argv
+    print('** argv: ', argv)
+    prams={}
     #
     if not '=' in argv[1]:
-        project_name = argv[1]
+        prams['project_name'] = argv[1]
     if not '=' in argv[2]:
-        geom_index = argv[2]
+        prams['geom_index'] = argv[2]
     if len(argv) >= 4 and not '=' in argv[3]:
         # TODO: handle empty case...
-        plan_index = argv[3]
-    prams=dict([av.replace(chr(32), '').split('=') for av in sys.argv[1:] if '=' in av])
+        prams['plan_index'] = argv[3]
+    prams.update(dict([av.replace(chr(32), '').split('=') for av in sys.argv[1:] if '=' in av]) )
     #
     # we need three values, we can iner one:
     # 1) project name
@@ -69,4 +103,5 @@ if __name__ == '__main__':
     HR = HEC_RAS_unsteady(**prams)
     #
     print('*** HR: ', HR.__dict__)
+    HR.fix_text_files()
 
