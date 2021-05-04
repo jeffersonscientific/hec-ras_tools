@@ -19,17 +19,14 @@ In this repo, we will be building some tools to automate the good counsel provid
 Note that the release notes/docs sggest a script in which the HDF5 file _contents_, except for the `results` group, are copied from the primary to the `.tmp.hdf5`. However, unless there are other extraneous elements, it might be simpler and more efficient to perform an OS level filecopy, and then simply remove the `results` group.
 
 ## Example:
-'''
-(base) [myoder96@sh01-ln02 login /scratch/users/myoder96/hecras]$ ipython
-Python 3.8.5 (default, Sep  4 2020, 07:30:14) 
-Type 'copyright', 'credits' or 'license' for more information
-IPython 7.19.0 -- An enhanced Interactive Python. Type '?' for help.
+```
+    (base) [myoder96@sh01-ln02 login /scratch/users/myoder96/hecras]$ ipython
+    Python 3.8.5 (default, Sep  4 2020, 07:30:14) 
+    Type 'copyright', 'credits' or 'license' for more information
+    IPython 7.19.0 -- An enhanced Interactive Python. Type '?' for help.
 
-In [1]: import hecraspy
+    In [1]: import hecraspy
 
-In [2]: HR = hecraspy.HEC_RAS_unsteady(project_name='SMC_010', geom_index=2, plan_index=2, working_dir='work_demo_0202', inpu
-   ...: t_dir='PescaderoButano_original')
-
-In [3]: HR = hecraspy.HEC_RAS_unsteady(project_name='SMC_010', geom_index=2, plan_index=2, working_dir='work_demo_0202', inpu
-   ...: t_dir='PescaderoButano_original', do_execute=True))
-'''
+    In [2]: HR = hecraspy.HEC_RAS_unsteady(project_name='SMC_010', geom_index=2, plan_index=2, working_dir='work_demo_0202', inpu
+       ...: t_dir='PescaderoButano_original', do_execute=True))
+```   
