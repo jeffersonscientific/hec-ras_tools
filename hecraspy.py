@@ -4,22 +4,44 @@ import scipy
 import pylab as plt
 import datetime as datetime
 import matplotlib as mpl
+import glob
 #import matplotlib.datetime as mpd
 #
 import h5py
 import sys
 import os
-#import shutil
+import shutil
 #
 class HEC_RAS_unsteady(object):
-    def __init__(self, project_name=None, geom_index=None, plan_index=None, **kwargs):
+    def __init__(self, project_name=None, geom_index=None, plan_index=None, do_backup=None,
+    working_dir=None, input_dir=None, **kwargs):
+        '''
+        # @project_name: filename prefix that nominally describes the project. Example: for the
+        #  the plan file, SMC_010.b06, project_name=SMC_010; plan_index=6 (see below)
+        # @geom_index: index of geometry files. submit as an integer; zero-packing will be done.
+        # @plan_index: index of plan files. submit as integer.
+        # @do_backup: backup files that are modified. This will keep making more backups, so be careful...
+        # @working_dir: Optional. A working directory. Only missing files will be (re-)copied, so to totally
+        #  start over, nuke working_dir first.
+        # NOTE: required input files: *.c{k}, *.x{k}, *.g{k}.hdf, *.b{k}, *.p{k}.tmp.hdf
+        '''
         #
         if project_name is None or project_name.strip()=='':
-            raise Exception("Valid project name required.")\
+            raise Exception("Valid project name required.")
         #
         # TODO: more rigorous validation on indices...
         if (geom_index is None and plan_index is None):
             raise Exception("Valid geom_index and/or plan_index required.")
+        #
+        # If working_dir is provided, create a working directory and copy relevant
+        #  files to that location for... working on. If working_dir is provided, the default
+        #  value of do_backups if False, otherwise its default is True.
+        if input_dir is None:
+            input_dir = os.getcwd()
+        if working_dir is None:
+            working_dir = input_dir
+        working_dir = os.path.abspath(working_dir)
+        input_dir = os.path.abspath(input_dir)
         #
         if geom_index is None:
             geom_index = plan_index
@@ -41,15 +63,78 @@ class HEC_RAS_unsteady(object):
         x_fname = '{}.x{}'.format(project_name, geom_index_str)
         g_hdf5 = '{}.g{}.hdf'.format(project_name, geom_index_str)
         #
+        # files to copy. Note, we'll handl ethe plan HDF5 (plan_h5_tmp_fname) differently.
+        files_to_copy =[c_fname, x_fname, g_hdf5, b_fname]
+        #
+        # if working_dir and input_dir are the same, default to no backup otherwise default to do backup.
+        if working_dir == input_dir and do_backup is None:
+            do_backup = True
+        if working_dir != input_dir:
+            # working_dir stuf: default do_backup value, copy files, etc.
+            if do_backup is None:
+                do_backup = False
+            #
+            # get dir of working_dir (will be abs paths):
+            #fls_in_wd = glob.glob(os.path.join(working_dir, "*"))
+            # TODO: make this list more robust by applying abspath()?
+            for fl in files_to_copy:
+                if not os.path.exists(os.path.join(working_dir, fl)):
+                    shutil.copy(os.path.join(input_dir, fl), os.path.join(working_dir,fl) )
+                #
+            #
+        #
         self.__dict__.update({ky:vl for ky,vl in locals().items() if not ky in ('self', '__class__')})
         #
-    def fix_text_files(self):
+    def fix_plan_hdf(self, do_backup=None):
+        # remove {results:} group from the plan hdf5. Two approaches:
+        # 1) move (or copy and backup) plan_h5 -> plan_h5.tmp, remove {results: } group from plan_h5.tmp
+        # 2) Create a new file plan_h5.tmp, copy contents (except {results:}) from
+        #    plan_h5, delete (or backup-copy) planh_5)
+        #  both approaches should be equivalent; 1) should be faster for large geometries with small results, and possibly more robust (can we miss elements of the HDF5 object?); 2) will likely be faster for files with large results groups.
+        #
+        # note that then (as I understand it), all the work gets done in the .tmp
+        #  file, which in fact does not get renamed.
+        if do_backup is None:
+            do_backup = self.do_backup
+        if do_backup is None:
+            do_backup = True
+        #
+        if do_backup:
+            self.hdf_p_bkp_name = self.backup_file(self.plan_h5_fname)
+        #
+        with h5py.File(os.path.join(self.working_dir, self.plan_h5_tmp_fname), 'w') as fout,
+                h5py.File(os.path.join(self.input_dir, self.plan_h5), 'r') as fin:
+            for fattr in fin.attrrs.keys():
+                # note: be sure the syntax forces a copy of values, not a reff. or replacement
+                fout.attrs[fattr] = fin.attrs.get(fattr, None)[:]
+            for fg in fin.keys():
+                if fg == 'Results': continue
+                # note: there are multiple syntax options here as well. I think also,
+                # fout[fg][:] = fin[fg][:]
+                fin.copy( fg, fout )
+            #
+        #
+        return 0
+    #
+    def fix_text_files(self, do_backup=None):
         # for now, assume text files are small, so we can just read() them
         #  if we want.
         #
+        if do_backup is None:
+            do_backup = self.do_backup
+        if do_backup is None:
+            do_backup = True
+        #
         # TODO: write backups of these text files...
         #
-        with open(self.b_fname, 'r') as fin:
+        if do_backup:
+            self.b_bkp_name = self.backup_file(os.path.append(self.working_dir, self.b_fname) )
+            self.x_bkp_name = self.backup_file(os.path.append(self.input_dir, self.x_fname))
+        #
+        # NOTE: it would also make sense to read from self.input_dir and write to
+        #   self.working_dir, and we cold skip the os filecopy step... except that
+        #
+        with open(os.path.append(self.working_dir, self.b_fname), 'r') as fin:
             b_text = fin.read().replace('{}{}'.format(chr(13), chr(10)), chr(10))
             #
             for rw in b_text.split('\n'):
@@ -65,15 +150,27 @@ class HEC_RAS_unsteady(object):
                 #
             #
         #
-        #with open(self.b_fname, 'w') as fout:
-        #    fout.write(b_text)
+        with open(os.path.append(self.working_dir, self.b_fname), 'w') as fout:
+            fout.write(b_text)
         #
-        with open(self.x_fname, 'r') as fin:
-            x+text = fin.read().replace('{}{}'.format(chr(13), chr(10)), chr(10))
+        # x-text:
+        with open(os.path.append(self.working_dir, self.x_fname), 'r') as fin:
+            x_text = fin.read().replace('{}{}'.format(chr(13), chr(10)), chr(10))
         #
-        #with open(self.x_fname, 'w') as fout:
-        #    fout.write(x_text)
-        print('*** {}'.format(b_text))
+        with open(os.path.append(self.working_dir, self.x_fname), 'w') as fout:
+            fout.write(x_text)
+        #print('*** {}'.format(b_text))
+    #
+    def backup_file(self, fname):
+        k_index=0
+        for k,fl in enumerate(glob.glob(f'{fname}.bkp_*')):
+            # NOTE: let's force the *_{index} notation, just to simplify our code.
+            k_index = max( int(fl.split('_')[-1]), k_index) + 1
+        foutname = f'{fname}.bkp_{f"000{k_index}"[-4:]}'
+        shutil.copy(fname, foutname )
+        #
+        return foutname
+        
         
 #
 if __name__ == '__main__':
@@ -86,10 +183,11 @@ if __name__ == '__main__':
     if not '=' in argv[1]:
         prams['project_name'] = argv[1]
     if not '=' in argv[2]:
-        prams['geom_index'] = argv[2]
+        prams['geom_index'] = int(argv[2])
     if len(argv) >= 4 and not '=' in argv[3]:
         # TODO: handle empty case...
-        prams['plan_index'] = argv[3]
+        prams['plan_index'] = int(argv[3])
+    #
     prams.update(dict([av.replace(chr(32), '').split('=') for av in sys.argv[1:] if '=' in av]) )
     #
     # we need three values, we can iner one:
@@ -100,8 +198,9 @@ if __name__ == '__main__':
     # TODO: add a dict to map common names to a given name, ie:
     # {'geom_index':'geometry_index', ...} or {'geometry_index':['geom_index', 'g_index', ...], ... }
     #
-    HR = HEC_RAS_unsteady(**prams)
+    HR = HEC_RAS_unsteady(do_backup=False, **prams)
     #
     print('*** HR: ', HR.__dict__)
     HR.fix_text_files()
+    HR.fix_plan_hdf()
 
