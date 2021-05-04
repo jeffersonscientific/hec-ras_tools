@@ -22,7 +22,7 @@ import subprocess
 #
 class HEC_RAS_unsteady(object):
     def __init__(self, project_name=None, geom_index=None, plan_index=None,
-    working_dir=None, input_dir=None, do_backup=None, do_fix_files=True, do_execute=False, exe_stdout=None, exe_stderr=None, **kwargs):
+    working_dir=None, input_dir=None, do_backup=None, do_fix_files=True, do_execute=False, exe_stdout=None, exe_stderr=None, hecras_exe=None, **kwargs):
         '''
         # @project_name: filename prefix that nominally describes the project. Example: for the
         #  the plan file, SMC_010.b06, project_name=SMC_010; plan_index=6 (see below)
@@ -41,6 +41,8 @@ class HEC_RAS_unsteady(object):
         # TODO: more rigorous validation on indices...
         if (geom_index is None and plan_index is None):
             raise Exception("Valid geom_index and/or plan_index required.")
+        #
+        hecras_exe = hecras_exe or os.environ.get('HECRAS_EXE', 'rasUnsteady64')
         #
         # If working_dir is provided, create a working directory and copy relevant
         #  files to that location for... working on. If working_dir is provided, the default
@@ -125,7 +127,7 @@ class HEC_RAS_unsteady(object):
         this_dir = os.getcwd()
         os.chdir(self.working_dir)
         #
-        exe_str = f'ulimit -s unlimited; {os.environ["HECRAS_EXE"]} {self.c_fname} b{self.plan_index_str}'
+        exe_str = f'ulimit -s unlimited; {self.hecras_exe} {self.c_fname} b{self.plan_index_str}'
         print('*** exe_str: ', exe_str)
         #r_val = subprocess.run([os.environ['HECRAS_EXE'], self.c_fname, f'b{self.plan_index_str}'], stdout=exe_stdout, stderr=exe_stderr)
         r_val = subprocess.run(exe_str, shell=True, stdout=exe_stdout, stderr=exe_stderr)
