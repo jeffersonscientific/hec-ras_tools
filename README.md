@@ -41,3 +41,4 @@ or
 
     $ python hecraspy.py project_name=SMC_010 geometry_index=2 plan_index=3 working_dir=work_demo_0202 input_dir=PescaderoButano_original do_execute=True
 
+See also the sample batch script, `hecras_sample_batch.sh`. Note that this script is intended specifically to run on Stanford's Sherlock HPC, and in fact uses some modules that are particular to the School of Earth setup, but the basic principles apply to any HPC.
