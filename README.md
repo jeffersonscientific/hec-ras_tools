@@ -18,3 +18,26 @@ In this repo, we will be building some tools to automate the good counsel provid
 
 Note that the release notes/docs sggest a script in which the HDF5 file _contents_, except for the `results` group, are copied from the primary to the `.tmp.hdf5`. However, unless there are other extraneous elements, it might be simpler and more efficient to perform an OS level filecopy, and then simply remove the `results` group.
 
+## Example:
+
+The Python interface can be run from a Python command line, like:
+
+```
+    (base) [myoder96@sh01-ln02 login /scratch/users/myoder96/hecras]$ ipython
+    Python 3.8.5 (default, Sep  4 2020, 07:30:14) 
+    Type 'copyright', 'credits' or 'license' for more information
+    IPython 7.19.0 -- An enhanced Interactive Python. Type '?' for help.
+
+    In [1]: import hecraspy
+
+    In [2]: HR = hecraspy.HEC_RAS_unsteady(project_name='SMC_010', geom_index=2, plan_index=2, working_dir='work_demo_0202', inpu
+       ...: t_dir='PescaderoButano_original', do_execute=True))
+``` 
+
+The `hecraspy` module can also be run from the OS command line. A few parameters are directly handled; other parameters are handled as `**kwargs` and then passed to the `HEC_RAS_unsteady()` class object. Generally, input parameters can be identified from `HEC_RAS_unsteady.__init__()`. For example,
+
+    $ python hecraspy.py SMC_010 2 3 working_dir=work_demo_0202 input_dir=PescaderoButano_original do_execute=True
+or
+
+    $ python hecraspy.py project_name=SMC_010 geometry_index=2 plan_index=3 working_dir=work_demo_0202 input_dir=PescaderoButano_original do_execute=True
+
