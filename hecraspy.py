@@ -132,6 +132,14 @@ class HEC_RAS_unsteady(object):
         #r_val = subprocess.run([os.environ['HECRAS_EXE'], self.c_fname, f'b{self.plan_index_str}'], stdout=exe_stdout, stderr=exe_stderr)
         r_val = subprocess.run(exe_str, shell=True, stdout=exe_stdout, stderr=exe_stderr)
         #
+        # check the subprocess return value. We could do this by just adding check=True to subprocess.run(), in which case r_val will be an exception (see docs).
+        # or we can do more manually. This will raise an exception if the returncode != 0
+        r_val.check_returncode()
+        # or, we could handle it more explicitly.
+        if r_val.returncode != 0:
+            raise Exception("Non-zero return code from subprocess.run()")
+        shutil.move(self.plan_h5_tmp_fname, self.plan_h5_fname)
+        #
         os.chdir(this_dir)
         return r_val
     #
