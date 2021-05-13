@@ -31,8 +31,25 @@ GEOM_INDEX=5
 PLAN_INDEX=1
 PROJECT_NAME="SMC_010"
 #
+# allow for inputs. for now, just positional:
+if [[ ! -z $1 ]]; then; PROJECT_NAME=$1; fi
+if [[ ! -z $2 ]]; then; GEOM_INDEX=$2; fi
+if [[ ! -z $3 ]]; then; PLAN_INDEX=$3; fi
+#
 # set the location of the hecras source and workin_ dir. the script will create the working_dir if necessary.
 INPUT_DIR="/scratch/users/${USER}/hecras/PescaderoButano_original"
 WORKING_DIR="/scratch/users/${USER}/hecras/work_dir_`printf %02d ${GEOM_INDEX}`_`printf %02d ${PLAN_INDEX}`"
+#
+# add an OUTPUT_DIR. Copy completed job data here
+OUTPUT_DIR="${GROUP_HOME}/${USER}/hecras_outputs/work_dir_`printf %02d ${GEOM_INDEX}`_`printf %02d ${PLAN_INDEX}`$"
+DO_COPY=0
 
 python hecraspy.py ${PROJECT_NAME} ${GEOM_INDEX} ${PLAN_INDEX} input_dir=${INPUT_DIR} working_dir=${WORKING_DIR} do_execute=1
+#
+if [[ ${DO_COPY}=1 ]]; then
+    if [[ ! -d ${OUTPUT_DIR} ]]; then
+        mkdir -p ${OUTPUT_DIR}
+    fi
+    cp -r ${WORKING_DIR} ${OUTPUT_DIR}
+fi
+
