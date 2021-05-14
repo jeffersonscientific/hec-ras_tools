@@ -13,12 +13,15 @@ import os
 import shutil
 import subprocess
 #
-# TODO: Most geometries for PescaderoButano give an error, more or less:
-# "weir elevation lower than the cells they are connected to"
+# NOTE: Most geometries for PescaderoButano give an error, more or less:
+# "weir elevation lower than the cells they are connected to".
+#  This appears to be a legitimate problem with the construction of the geometries,so look out for it! But it's not our problem here...
 # Here is some help:
 # http://hec-ras-help.1091112.n5.nabble.com/Problem-with-dam-simulation-td6596.html
 # Hannah Hampson has suggested a few geometry/plan combos that should run, but they don't Some just throw an error on the wier thing, and then die.
 #  others seem to try to soldier on and then segfault. For the PescaderoButano sets, geom=1, plan=1 seems to run.
+# TODO: revise the workflow to first look for the .tmp.hdf file. In some cases, it might actually be provided, then overwritten
+#  by a bogus not-tmp file.
 #
 class HEC_RAS_unsteady(object):
     def __init__(self, project_name=None, geom_index=None, plan_index=None,
@@ -171,16 +174,28 @@ class HEC_RAS_unsteady(object):
         if do_backup and os.path.exists(self.working_path(self.plan_h5_fname)):
             self.hdf_p_bkp_name = self.backup_file(self.working_path(self.plan_h5_fname))
         #
-        with h5py.File(self.working_path(self.plan_h5_tmp_fname), 'w') as fout,\
-                h5py.File(self.input_path(self.plan_h5_fname), 'r') as fin:
-            for fattr in fin.attrs.keys():
-                # note: be sure the syntax forces a copy of values, not a reff. or replacement
-                fout.attrs[fattr] = fin.attrs.get(fattr, None)[:]
-            for fg in fin.keys():
-                if fg == 'Results': continue
-                # note: there are multiple syntax options here as well. I think also,
-                # fout[fg][:] = fin[fg][:]
-                fin.copy( fg, fout )
+        # TODO: as per above, very top TODO:: if .tmp.hdf exists, just crack it open and delete the 'Results' group
+        #  I think the GUI has a workflow where it creates .tmp to do all the work and a not-tmp to just sit there, in some cases.
+        #  so when we do a test run, we end up copying a basically empty not-tmp file over and then usint that to overwrite the
+        #  actual geom file.
+        # TODO: better validation of the HDF5 file. Does it have a Results group?
+        if os.path.exists(self.plan_h5_tmp_fname):
+            with h5py.File(self.plan_h5_tmp_fname, 'r+') as fin:
+                # NOTE: we might still need to copy the file and then copy the contents in order to reduce the size
+                #  of the file. This should delete the ['Results'] group, but will leave a big empty space inside the object.
+                del fin['Results']
+        else:
+            with h5py.File(self.working_path(self.plan_h5_tmp_fname), 'w') as fout,\
+                    h5py.File(self.input_path(self.plan_h5_fname), 'r') as fin:
+                for fattr in fin.attrs.keys():
+                    # note: be sure the syntax forces a copy of values, not a reff. or replacement
+                    fout.attrs[fattr] = fin.attrs.get(fattr, None)[:]
+                for fg in fin.keys():
+                    if fg == 'Results': continue
+                    # note: there are multiple syntax options here as well. I think also,
+                    # fout[fg][:] = fin[fg][:]
+                    fin.copy( fg, fout )
+                #
             #
         #
         return 0
