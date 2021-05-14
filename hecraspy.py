@@ -178,24 +178,23 @@ class HEC_RAS_unsteady(object):
         #  I think the GUI has a workflow where it creates .tmp to do all the work and a not-tmp to just sit there, in some cases.
         #  so when we do a test run, we end up copying a basically empty not-tmp file over and then usint that to overwrite the
         #  actual geom file.
-        # TODO: better validation of the HDF5 file. Does it have a Results group?
-        if os.path.exists(self.plan_h5_tmp_fname):
-            with h5py.File(self.plan_h5_tmp_fname, 'r+') as fin:
-                # NOTE: we might still need to copy the file and then copy the contents in order to reduce the size
-                #  of the file. This should delete the ['Results'] group, but will leave a big empty space inside the object.
-                del fin['Results']
+        if os.path.exists(self.input_path(self.plan_h5_tmp_fname)):
+            src_path = self.input_path(self.plan_h5_tmp_fname)
         else:
-            with h5py.File(self.working_path(self.plan_h5_tmp_fname), 'w') as fout,\
-                    h5py.File(self.input_path(self.plan_h5_fname), 'r') as fin:
-                for fattr in fin.attrs.keys():
-                    # note: be sure the syntax forces a copy of values, not a reff. or replacement
-                    fout.attrs[fattr] = fin.attrs.get(fattr, None)[:]
-                for fg in fin.keys():
-                    if fg == 'Results': continue
-                    # note: there are multiple syntax options here as well. I think also,
-                    # fout[fg][:] = fin[fg][:]
-                    fin.copy( fg, fout )
-                #
+            src_path = self.input_path(self.plan_h5_fname)
+        #
+        # TODO: better validation of the HDF5 file. Does it have a Results group?
+        with h5py.File(self.working_path(self.plan_h5_tmp_fname), 'w') as fout,\
+                h5py.File(src_path, 'r') as fin:
+            for fattr in fin.attrs.keys():
+                # note: be sure the syntax forces a copy of values, not a reff. or replacement
+                fout.attrs[fattr] = fin.attrs.get(fattr, None)[:]
+            for fg in fin.keys():
+                if fg == 'Results': continue
+                # note: there are multiple syntax options here as well. I think also,
+                # fout[fg][:] = fin[fg][:]
+                fin.copy( fg, fout )
+            #
             #
         #
         return 0
@@ -267,6 +266,7 @@ def my_bool(s):
         
 #
 if __name__ == '__main__':
+    #print('*** running main...')
     # TODO: also, assume project_name, geom_index, plan_index as default.
     # then, override with **kwargs style.
     argv = sys.argv

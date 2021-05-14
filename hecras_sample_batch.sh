@@ -3,7 +3,6 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=8g
-#SBATCH --chdir=/scratch/users/$USER/hecras
 #SBATCH --time=24:00:00
 #SBATCH --output=hecras_%j.out
 #SBATCH --error=hecras_%j.err
@@ -27,17 +26,18 @@ module load hec-ras
 ulimit -s unlimited
 #
 # set run variables:
+PROJECT_NAME="SMC_010"
 GEOM_INDEX=5
 PLAN_INDEX=1
-PROJECT_NAME="SMC_010"
 #
 # allow for inputs. for now, just positional:
-if [[ ! -z $1 ]]; then; PROJECT_NAME=$1; fi
-if [[ ! -z $2 ]]; then; GEOM_INDEX=$2; fi
-if [[ ! -z $3 ]]; then; PLAN_INDEX=$3; fi
+if [[ ! -z $1 ]]; then PROJECT_NAME=$1; fi
+if [[ ! -z $2 ]]; then GEOM_INDEX=$2; fi
+if [[ ! -z $3 ]]; then PLAN_INDEX=$3; fi
 #
 # set the location of the hecras source and workin_ dir. the script will create the working_dir if necessary.
-INPUT_DIR="/scratch/users/${USER}/hecras/PescaderoButano_original"
+#INPUT_DIR="/scratch/users/${USER}/hecras/PescaderoButano_original"
+INPUT_DIR="/oak/stanford/schools/ees/jsuckale/hhampson/PescaderoButano"
 WORKING_DIR="/scratch/users/${USER}/hecras/work_dir_`printf %02d ${GEOM_INDEX}`_`printf %02d ${PLAN_INDEX}`"
 #
 # add an OUTPUT_DIR. Copy completed job data here
