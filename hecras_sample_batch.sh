@@ -44,7 +44,7 @@ WORKING_DIR="/scratch/users/${USER}/hecras/work_dir_`printf %02d ${GEOM_INDEX}`_
 OUTPUT_DIR="${GROUP_HOME}/${USER}/hecras_outputs/work_dir_`printf %02d ${GEOM_INDEX}`_`printf %02d ${PLAN_INDEX}`$"
 DO_COPY=0
 
-python hecraspy.py ${PROJECT_NAME} ${GEOM_INDEX} ${PLAN_INDEX} input_dir=${INPUT_DIR} working_dir=${WORKING_DIR} do_execute=1
+python ${HECRAS_TOOLS_DIR}/hecraspy.py ${PROJECT_NAME} ${GEOM_INDEX} ${PLAN_INDEX} input_dir=${INPUT_DIR} working_dir=${WORKING_DIR} do_execute=1
 #
 if [[ ${DO_COPY}=1 ]]; then
     if [[ ! -d ${OUTPUT_DIR} ]]; then
